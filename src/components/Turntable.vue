@@ -112,6 +112,8 @@ export default {
         const listNextIndex =
           (data.tableList[baseIndex]._baseIndex + prevDisance) % 9;
         data.tableList[tableListPrevIndex] = props.list[listNextIndex];
+        console.log(tableListPrevIndex);
+        console.log(props.list[listNextIndex]);
       } else {
         const nextDisance = 12 - ceil(props.list.length / 2);
         const tableListNextIndex =
@@ -125,6 +127,8 @@ export default {
               ((data.tableList[baseIndex]._baseIndex - (12 - nextDisance)) % 9)
             : (data.tableList[baseIndex]._baseIndex - (12 - nextDisance)) % 9;
         data.tableList[tableListNextIndex] = props.list[listPrevIndex];
+        console.log(tableListNextIndex);
+        console.log(props.list[listPrevIndex]);
       }
     };
 
@@ -172,22 +176,72 @@ export default {
     // 点击
     const touch = (index: number) => {
       if (index === data.activeIndex) return;
-      if (
-        (index < data.activeIndex + 4 && index > data.activeIndex) ||
-        index - data.activeIndex === -11
-      ) {
+      // 是否下半区
+      const isUnder =
+        (index > data.activeIndex &&
+          index <= data.activeIndex + Math.floor(props.list.length / 2)) ||
+        (index < data.activeIndex &&
+          index <=
+            data.activeIndex +
+              Math.floor(props.list.length / 2) -
+              data.tableList.length);
+
+      if (isUnder) {
+        // 点了下半区
         const dis =
           index - data.activeIndex < 0
             ? 12 + index - data.activeIndex
             : index - data.activeIndex;
-        console.log(dis % 12);
         data.tableRotateAngel -= (dis % 12) * data.perAngel;
       } else {
+        // 点了上半区
         data.tableRotateAngel +=
           ((12 - index + data.activeIndex) % 12) * data.perAngel;
       }
 
-      modifyTableList(index);
+      const viaIndexList = [];
+      if (isUnder) {
+        let maxNum =
+          index - data.activeIndex < 0
+            ? index - data.activeIndex + 12
+            : index - data.activeIndex;
+        while (maxNum > 0) {
+          viaIndexList.push(
+            (maxNum + data.activeIndex) % data.tableList.length
+          );
+          maxNum--;
+        }
+      } else {
+        const aIndex =
+          data.activeIndex === 0 ? data.tableList.length : data.activeIndex;
+        let minNum = aIndex - index;
+        while (minNum > 0) {
+          viaIndexList.push(aIndex - minNum);
+          minNum--;
+        }
+      }
+      viaIndexList.forEach((item) => {
+        if (isUnder) {
+          const prevDisance = Math.ceil(props.list.length / 2);
+          const tableListPrevIndex = (prevDisance + item) % 12;
+          const listNextIndex =
+            (data.tableList[item]._baseIndex + prevDisance) % 9;
+          data.tableList[tableListPrevIndex] = props.list[listNextIndex];
+        } else {
+          const nextDisance = 12 - Math.ceil(props.list.length / 2);
+          const tableListNextIndex =
+            (nextDisance - (12 - item)) % 12 < 0
+              ? 12 + ((nextDisance - (12 - item)) % 12)
+              : (nextDisance - (12 - item)) % 12;
+
+          const listPrevIndex =
+            (data.tableList[item]._baseIndex - (12 - nextDisance)) % 9 < 0
+              ? 9 + ((data.tableList[item]._baseIndex - (12 - nextDisance)) % 9)
+              : (data.tableList[item]._baseIndex - (12 - nextDisance)) % 9;
+          data.tableList[tableListNextIndex] = props.list[listPrevIndex];
+        }
+      });
+
       data.activeIndex = index;
     };
 
