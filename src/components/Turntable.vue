@@ -214,34 +214,44 @@ export default {
       } else {
         const aIndex =
           data.activeIndex === 0 ? data.tableList.length : data.activeIndex;
-        let minNum = aIndex - index;
+        let minNum = aIndex - index < 0 ? aIndex - index + 12 : aIndex - index;
         while (minNum > 0) {
-          viaIndexList.push(aIndex - minNum);
+          const res =
+            data.activeIndex - minNum < 0
+              ? data.activeIndex - minNum + 12
+              : data.activeIndex - minNum;
+          viaIndexList.push(res);
           minNum--;
         }
       }
       viaIndexList.forEach((item) => {
         if (isUnder) {
           const prevDisance = Math.ceil(props.list.length / 2);
-          const tableListPrevIndex = (prevDisance + item) % 12;
+          const tableListPrevIndex =
+            (prevDisance + item) % data.tableList.length;
           const listNextIndex =
-            (data.tableList[item]._baseIndex + prevDisance) % 9;
+            (data.tableList[item]._baseIndex + prevDisance) % props.list.length;
           data.tableList[tableListPrevIndex] = props.list[listNextIndex];
         } else {
-          const nextDisance = 12 - Math.ceil(props.list.length / 2);
+          const nextDisance =
+            data.tableList.length - Math.ceil(props.list.length / 2);
           const tableListNextIndex =
-            (nextDisance - (12 - item)) % 12 < 0
-              ? 12 + ((nextDisance - (12 - item)) % 12)
-              : (nextDisance - (12 - item)) % 12;
-
+            (item + nextDisance) % data.tableList.length;
           const listPrevIndex =
-            (data.tableList[item]._baseIndex - (12 - nextDisance)) % 9 < 0
-              ? 9 + ((data.tableList[item]._baseIndex - (12 - nextDisance)) % 9)
-              : (data.tableList[item]._baseIndex - (12 - nextDisance)) % 9;
+            (data.tableList[item]._baseIndex -
+              (data.tableList.length - nextDisance)) %
+              props.list.length <
+            0
+              ? props.list.length +
+                ((data.tableList[item]._baseIndex -
+                  (data.tableList.length - nextDisance)) %
+                  props.list.length)
+              : (data.tableList[item]._baseIndex -
+                  (data.tableList.length - nextDisance)) %
+                props.list.length;
           data.tableList[tableListNextIndex] = props.list[listPrevIndex];
         }
       });
-
       data.activeIndex = index;
     };
 
