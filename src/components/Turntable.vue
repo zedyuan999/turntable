@@ -60,21 +60,21 @@
 
 <script lang="ts">
 interface tableItem {
-  _baseIndex: number;
-  [propName: string]: any;
+  _baseIndex: number
+  [propName: string]: any
 }
 interface DataType {
-  baseangle: number;
-  tableRotateangle: number;
-  touched: boolean;
-  perangle: number;
-  tableList: tableItem[];
-  activeIndex: number;
-  circleX: number | null;
-  circleY: number | null;
+  baseangle: number
+  tableRotateangle: number
+  touched: boolean
+  perangle: number
+  tableList: tableItem[]
+  activeIndex: number
+  circleX: number | null
+  circleY: number | null
 }
 
-import { computed, PropType, reactive, ref } from "vue";
+import { computed, PropType, reactive, ref } from 'vue'
 export default {
   props: {
     list: {
@@ -82,7 +82,7 @@ export default {
       default: [],
     },
   },
-  setup(props:any) {
+  setup(props: any) {
     const data = reactive<DataType>({
       baseangle: 0,
       tableRotateangle: 0,
@@ -92,38 +92,38 @@ export default {
       activeIndex: 0, // 当前选中的index  tableList的index
       circleX: null,
       circleY: null,
-    });
-    const table = ref(null);
-    const { sqrt, PI, acos, pow, ceil, floor, abs } = Math;
+    })
+    const table = ref(null)
+    const { sqrt, PI, acos, pow, ceil, floor, abs } = Math
     // 总共有12个item
     const itemNum = computed(() => {
-      return 360 / data.perangle;
-    });
+      return 360 / data.perangle
+    })
 
     // 判断是否为选中的item
     const isActiveItem = (index: number): boolean => {
-      const angle = index * -data.perangle - data.tableRotateangle;
-      return angle === 0 || angle === -360;
-    };
+      const angle = index * -data.perangle - data.tableRotateangle
+      return angle === 0 || angle === -360
+    }
     /**
      * 修改前一个
      * @param {number} index 传入activeIndex
      */
     const modifyPrev = (index: number) => {
-      const prevDisance = ceil(props.list.length / 2);
-      const tableListPrevIndex = (prevDisance + index) % itemNum.value;
+      const prevDisance = ceil(props.list.length / 2)
+      const tableListPrevIndex = (prevDisance + index) % itemNum.value
       const listNextIndex =
-        (data.tableList[index]._baseIndex + prevDisance) % props.list.length;
-      data.tableList[tableListPrevIndex] = props.list[listNextIndex];
-    };
+        (data.tableList[index]._baseIndex + prevDisance) % props.list.length
+      data.tableList[tableListPrevIndex] = props.list[listNextIndex]
+    }
 
     /**
      * 修改后一个
      * @param {number} index 传入activeIndex
      */
     const modifyNext = (index: number) => {
-      const nextDisance = itemNum.value - ceil(props.list.length / 2);
-      const tableListNextIndex = (index + nextDisance) % itemNum.value;
+      const nextDisance = itemNum.value - ceil(props.list.length / 2)
+      const tableListNextIndex = (index + nextDisance) % itemNum.value
       const listPrevIndex =
         (data.tableList[index]._baseIndex - (itemNum.value - nextDisance)) %
           props.list.length <
@@ -133,26 +133,26 @@ export default {
               (itemNum.value - nextDisance)) %
               props.list.length)
           : (data.tableList[index]._baseIndex - (itemNum.value - nextDisance)) %
-            props.list.length;
-      data.tableList[tableListNextIndex] = props.list[listPrevIndex];
-    };
+            props.list.length
+      data.tableList[tableListNextIndex] = props.list[listPrevIndex]
+    }
 
     // 初始化转盘数组
     const tableInit = () => {
-      const list = new Array(itemNum.value);
+      const list = new Array(itemNum.value)
       for (let i = 0; i < list.length; i++) {
-        const currIndex = i < list.length / 2 ? i : i - 3;
+        const currIndex = i < list.length / 2 ? i : i - 3
         const index =
           currIndex < props.list.length
             ? currIndex
-            : currIndex - props.list.length;
-        const item = props.list[index];
-        item._baseIndex = index;
-        list[i] = item;
+            : currIndex - props.list.length
+        const item = props.list[index]
+        item._baseIndex = index
+        list[i] = item
       }
-      data.tableList = list;
-    };
-    tableInit();
+      data.tableList = list
+    }
+    tableInit()
 
     // 获取圆心坐标  避免多次计算
     const getCircleCenterCoordinate = () => {
@@ -160,17 +160,17 @@ export default {
         return {
           x0: data.circleX,
           y0: data.circleY,
-        };
+        }
       }
-      const t = table.value as any;
+      const t = table.value as any
       const x0 =
-        t.getBoundingClientRect().left + t.getBoundingClientRect().width / 2;
+        t.getBoundingClientRect().left + t.getBoundingClientRect().width / 2
       const y0 =
-        t.getBoundingClientRect().top + t.getBoundingClientRect().height / 2;
-      data.circleX = x0;
-      data.circleY = y0;
-      return { x0, y0 };
-    };
+        t.getBoundingClientRect().top + t.getBoundingClientRect().height / 2
+      data.circleX = x0
+      data.circleY = y0
+      return { x0, y0 }
+    }
 
     /**
      * 调整角度
@@ -178,153 +178,152 @@ export default {
      */
     const adjustangle = (adjust: boolean = true) => {
       // 夹角为0  无需复位
-      const disanceangle = data.tableRotateangle % data.perangle;
-      let changeangle = 0;
-      if (disanceangle === 0) return;
+      const disanceangle = data.tableRotateangle % data.perangle
+      let changeangle = 0
+      if (disanceangle === 0) return
       // 夹角是否大于item角度（30度）的一半
-      const gtHalfPerangle = disanceangle > data.perangle / 2;
+      const gtHalfPerangle = disanceangle > data.perangle / 2
       if (disanceangle > 0) {
         changeangle = gtHalfPerangle
           ? data.perangle - disanceangle
-          : -disanceangle;
+          : -disanceangle
       } else {
         changeangle = gtHalfPerangle
           ? -data.perangle - disanceangle
-          : -disanceangle;
+          : -disanceangle
       }
-      if (!adjust) return changeangle;
-      data.tableRotateangle += changeangle;
-    };
+      if (!adjust) return changeangle
+      data.tableRotateangle += changeangle
+    }
 
     // 跳转
     const handleNavigateTo = (index: number) => {
       // 陈奕迅神经研究所官网
-      location.href = "http://www.easonfans.com/";
-    };
+      location.href = 'http://www.easonfans.com/'
+    }
 
     /**
      * 点击item
      * @param {number} index 传入index
      */
     const touch = (index: number) => {
-      if (index === data.activeIndex) return;
+      if (index === data.activeIndex) return
       // 是否下半区
       const isUnder =
         (index > data.activeIndex &&
           index <= data.activeIndex + floor(props.list.length / 2)) ||
         (index < data.activeIndex &&
           index <=
-            data.activeIndex + floor(props.list.length / 2) - itemNum.value);
+            data.activeIndex + floor(props.list.length / 2) - itemNum.value)
 
       if (isUnder) {
         // 点了下半区
         const dis =
           index - data.activeIndex < 0
             ? itemNum.value + index - data.activeIndex
-            : index - data.activeIndex;
-        data.tableRotateangle -= (dis % itemNum.value) * data.perangle;
+            : index - data.activeIndex
+        data.tableRotateangle -= (dis % itemNum.value) * data.perangle
       } else {
         // 点了上半区
         data.tableRotateangle +=
           ((itemNum.value - index + data.activeIndex) % itemNum.value) *
-          data.perangle;
+          data.perangle
       }
 
-      const viaIndexList = [];
+      const viaIndexList = []
       if (isUnder) {
         let maxNum =
           index - data.activeIndex < 0
             ? index - data.activeIndex + itemNum.value
-            : index - data.activeIndex;
+            : index - data.activeIndex
         while (maxNum > 0) {
-          viaIndexList.push((maxNum + data.activeIndex) % itemNum.value);
-          maxNum--;
+          viaIndexList.push((maxNum + data.activeIndex) % itemNum.value)
+          maxNum--
         }
       } else {
-        const aIndex =
-          data.activeIndex === 0 ? itemNum.value : data.activeIndex;
+        const aIndex = data.activeIndex === 0 ? itemNum.value : data.activeIndex
         let minNum =
-          aIndex - index < 0 ? aIndex - index + itemNum.value : aIndex - index;
+          aIndex - index < 0 ? aIndex - index + itemNum.value : aIndex - index
         while (minNum > 0) {
           const res =
             data.activeIndex - minNum < 0
               ? data.activeIndex - minNum + itemNum.value
-              : data.activeIndex - minNum;
-          viaIndexList.push(res);
-          minNum--;
+              : data.activeIndex - minNum
+          viaIndexList.push(res)
+          minNum--
         }
       }
       viaIndexList.forEach((item) => {
         if (isUnder) {
-          modifyPrev(item);
+          modifyPrev(item)
         } else {
-          modifyNext(item);
+          modifyNext(item)
         }
-      });
-      data.activeIndex = index;
-    };
+      })
+      data.activeIndex = index
+    }
 
     // 开始滑动
     const touchStart = (e: TouchEvent) => {
-      const { x0, y0 } = getCircleCenterCoordinate();
-      const touch = e.touches[0];
-      data.touched = true;
+      const { x0, y0 } = getCircleCenterCoordinate()
+      const touch = e.touches[0]
+      data.touched = true
       const hypotenuse = sqrt(
         pow(touch.pageX - x0, 2) + pow(touch.pageY - y0, 2)
-      ); //斜边
-      const angle = acos((touch.pageX - x0) / hypotenuse) / (PI / 180);
+      ) //斜边
+      const angle = acos((touch.pageX - x0) / hypotenuse) / (PI / 180)
       data.baseangle =
-        (touch.pageY - y0 < 0 ? angle : 360 - angle) + data.tableRotateangle;
-    };
+        (touch.pageY - y0 < 0 ? angle : 360 - angle) + data.tableRotateangle
+    }
 
     // 滑动中
     const touchMove = (e: TouchEvent) => {
-      if (!data.touched) return;
-      const touch = e.touches[0];
-      const { x0, y0 } = getCircleCenterCoordinate();
+      if (!data.touched) return
+      const touch = e.touches[0]
+      const { x0, y0 } = getCircleCenterCoordinate()
       const hypotenuse = sqrt(
         pow(touch.pageX - x0, 2) + pow(touch.pageY - y0, 2)
-      );
-      const angle = (acos((touch.pageX - x0) / hypotenuse) * 180) / PI;
-      const moveangle = touch.pageY - y0 < 0 ? angle : 360 - angle;
-      data.tableRotateangle = -(moveangle - data.baseangle) % 360;
+      )
+      const angle = (acos((touch.pageX - x0) / hypotenuse) * 180) / PI
+      const moveangle = touch.pageY - y0 < 0 ? angle : 360 - angle
+      data.tableRotateangle = -(moveangle - data.baseangle) % 360
 
       // 每经过一个item就触发一次事件  获取需要调整的角度
-      const res = adjustangle(false) as number;
+      const res = adjustangle(false) as number
 
       // 计算调整完的角度
-      const adjustedangle = data.tableRotateangle + res;
+      const adjustedangle = data.tableRotateangle + res
       // 控制调整完的角度为正整数
       const endingangle =
-        adjustedangle < 0 ? 360 + adjustedangle : adjustedangle;
+        adjustedangle < 0 ? 360 + adjustedangle : adjustedangle
       // 求出若调整完成，此时的activeIndex的值为多少
-      const index = abs(endingangle / data.perangle) % itemNum.value;
+      const index = abs(endingangle / data.perangle) % itemNum.value
 
-      const activeIndex = index == 0 ? index : itemNum.value - index;
+      const activeIndex = index == 0 ? index : itemNum.value - index
       if (activeIndex !== data.activeIndex) {
         const clockwise =
           activeIndex - data.activeIndex === 1 ||
-          activeIndex - data.activeIndex === 0 - (itemNum.value - 1);
+          activeIndex - data.activeIndex === 0 - (itemNum.value - 1)
         const counterClockwise =
           activeIndex - data.activeIndex === -1 ||
-          activeIndex - data.activeIndex === itemNum.value - 1;
+          activeIndex - data.activeIndex === itemNum.value - 1
         if (clockwise) {
-          modifyPrev(index);
-          console.log(1);
+          modifyPrev(index)
+          console.log(1)
         } else if (counterClockwise) {
-          modifyNext(index);
-          console.log(2);
+          modifyNext(index)
+          console.log(2)
         } else {
-          console.log(123);
+          console.log(123)
         }
-        data.activeIndex = activeIndex;
+        data.activeIndex = activeIndex
       }
-    };
+    }
     // 接触滑动
     const touchEnd = (e: TouchEvent) => {
-      data.touched = false;
-      adjustangle();
-    };
+      data.touched = false
+      adjustangle()
+    }
 
     return {
       data,
@@ -338,9 +337,9 @@ export default {
       handleNavigateTo,
       touch,
       isActiveItem,
-    };
+    }
   },
-};
+}
 </script>
 
 <style lang="less" scoped>
@@ -381,7 +380,7 @@ export default {
   position: absolute;
   box-sizing: border-box;
   &::after {
-    content: "";
+    content: '';
     border: 1px solid #999;
     width: var(--table-base-width);
     height: var(--table-base-width);

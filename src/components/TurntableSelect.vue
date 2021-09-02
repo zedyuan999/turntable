@@ -23,9 +23,9 @@
           :style="{
             transformOrigin: `center ${tableConfig.diameter / 2}px`,
             transform: `translateX(-50%) rotate(${
-              tableConfig.itemAngle / 2 +
               tableConfig.itemAngle * index +
-              tableConfig.itemStartAngle
+              tableConfig.activeAngle -
+              active * tableConfig.itemAngle
             }deg)`,
           }"
         >
@@ -33,7 +33,13 @@
           <p>{{ item.content }}</p>
         </div>
       </div>
-      <div ref="currentSelectWrap" class="current-select-wrap"></div>
+      <div
+        ref="currentSelectWrap"
+        class="current-select-wrap"
+        :style="{
+          transform: `translate(-50%,-50%) rotate(${-data.tableRotateAngle}deg)`,
+        }"
+      ></div>
     </div>
   </section>
 </template>
@@ -42,9 +48,8 @@
 import { reactive, ref, defineComponent, computed, PropType } from 'vue'
 interface Config {
   diameter: number //直径
-  itemStartAngle: number | 'top' | 'bottom' | 'left' | 'right' //基础角度 | 向上、下、左、右看齐
   itemAngle: number //item的角度
-  activeAngle: number | 'start' | 'middle' | 'end' //选中的角度 ，start
+  activeAngle: number //选中的角度
 }
 interface DataType {
   ox: number // 圆心x轴坐标
@@ -104,7 +109,6 @@ export default defineComponent({
     const { sqrt, acos, PI, abs, floor, ceil } = Math
     const baseConfig: Config = {
       diameter: 240,
-      itemStartAngle: 0,
       itemAngle: 45,
       activeAngle: 0,
     }
@@ -145,29 +149,6 @@ export default defineComponent({
     )
     if (delChild.length > 0) {
       console.error('chlid超出长度')
-    }
-    // 向上、下、左、右居中
-    if (typeof tableConfig.itemStartAngle == 'string') {
-      switch (tableConfig.itemStartAngle) {
-        case 'top':
-          tableConfig.itemStartAngle =
-            (-tableConfig.itemAngle * props.children!.length) / 2
-          break
-        case 'bottom':
-          tableConfig.itemStartAngle =
-            (-tableConfig.itemAngle * props.children!.length) / 2 + 180
-          break
-        case 'left':
-          tableConfig.itemStartAngle =
-            (-tableConfig.itemAngle * props.children!.length) / 2 - 90
-          break
-        case 'right':
-          tableConfig.itemStartAngle =
-            (-tableConfig.itemAngle * props.children!.length) / 2 + 90
-          break
-        default:
-          break
-      }
     }
     /**
      * 调整角度
@@ -213,13 +194,19 @@ export default defineComponent({
       const res = adjustangle(false) as number
       // 计算调整完的角度
       const adjustedAngle = data.tableRotateAngle + res
-      console.log(adjustedAngle)
-      console.log(tableConfig.activeAngle)
+
+      // 控制阈值
     }
     // 结束滑动
     const touchEnd = () => {
       data.touched = false
       adjustangle()
+      const active =
+        props.active -
+        (data.tableRotateAngle - tableConfig.activeAngle) /
+          tableConfig.itemAngle
+      console.log(active)
+      // emit('update:active', active)
     }
     return {
       closeSelector,
