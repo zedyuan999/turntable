@@ -82,7 +82,7 @@ export default {
       default: [],
     },
   },
-  setup(props) {
+  setup(props:any) {
     const data = reactive<DataType>({
       baseangle: 0,
       tableRotateangle: 0,

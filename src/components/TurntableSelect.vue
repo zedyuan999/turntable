@@ -8,113 +8,231 @@
   >
     <div
       class="turntable-select"
-      :style="{ ...selectClass, transform: `rotate(${data.baseangle}deg)` }"
+      :style="{
+        ...turntableClass,
+        transform: `rotate(${data.tableRotateAngle}deg)`,
+      }"
       @touchstart.stop="touchStart"
+      @click.stop
     >
+      <div class="children">
+        <div
+          class="child"
+          v-for="(item, index) in children"
+          :key="index"
+          :style="{
+            transformOrigin: `center ${tableConfig.diameter / 2}px`,
+            transform: `translateX(-50%) rotate(${
+              tableConfig.itemAngle / 2 +
+              tableConfig.itemAngle * index +
+              tableConfig.itemStartAngle
+            }deg)`,
+          }"
+        >
+          <img :src="item.img" alt="" />
+          <p>{{ item.content }}</p>
+        </div>
+      </div>
       <div ref="currentSelectWrap" class="current-select-wrap"></div>
     </div>
   </section>
 </template>
 
-<script>
-import { reactive, ref, defineComponent, computed } from "vue";
+<script lang="ts">
+import { reactive, ref, defineComponent, computed, PropType } from 'vue'
+interface Config {
+  diameter: number //直径
+  itemStartAngle: number | 'top' | 'bottom' | 'left' | 'right' //基础角度 | 向上、下、左、右看齐
+  itemAngle: number //item的角度
+  activeAngle: number | 'start' | 'middle' | 'end' //选中的角度 ，start
+}
+interface DataType {
+  ox: number // 圆心x轴坐标
+  oy: number // 圆心y轴坐标
+  startAngle: number // touchstart时记录的角度
+  tableRotateAngle: number // 转盘转动的角度
+  touched: boolean // 是否允许移动
+  startThreshold: number // 开始阈值
+  endthreshold: number // 结束阈值
+}
+
 export default defineComponent({
   props: {
     modelValue: {
       type: Boolean,
     },
     dom: {
-      type: Object,
+      type: Object as PropType<HTMLDivElement>,
     },
     config: {
       type: Object,
       default: {},
     },
+    children: {
+      type: Array,
+      defalut: [],
+    },
+    active: {
+      type: Number,
+      default: 0,
+    },
   },
   watch: {
     modelValue(val) {
-      if (!val) return;
-      const { x, y, width: w, height: h } = this.dom.getBoundingClientRect();
-      this.data.ox = x + w / 2;
-      this.data.oy = y + h / 2;
-      this.data.ow = w;
-      this.data.oh = h;
-      const cloneDom = this.dom.cloneNode(true);
-      var childs = this.currentSelectWrap.childNodes;
+      if (!val) return
+      // 重置角度
+      this.data.startAngle = 0
+      this.data.tableRotateAngle = 0
+      // 克隆dom
+      const {
+        x,
+        y,
+        width: w,
+        height: h,
+      } = (this.dom as HTMLDivElement).getBoundingClientRect()
+      this.data.ox = x + w / 2
+      this.data.oy = y + h / 2
+      const cloneDom = (this.dom as HTMLDivElement).cloneNode(true)
+      var childs = (this.currentSelectWrap as HTMLDivElement).childNodes
       for (var i = childs.length - 1; i >= 0; i--) {
-        this.currentSelectWrap.removeChild(childs[i]);
+        ;(this.currentSelectWrap as HTMLDivElement).removeChild(childs[i])
       }
-      this.currentSelectWrap.appendChild(cloneDom);
+      ;(this.currentSelectWrap as HTMLDivElement).appendChild(cloneDom)
     },
   },
   setup(props, { emit }) {
-    const baseConfig = {
-      baseangle: 0,
-      diameter: 200, //直径
-      turntableAngle: 0, //基础角度
-      itemAngle: 45, //item的角度
+    const { sqrt, acos, PI, abs, floor, ceil } = Math
+    const baseConfig: Config = {
+      diameter: 240,
+      itemStartAngle: 0,
+      itemAngle: 45,
+      activeAngle: 0,
+    }
+    // 转盘参数
+    const tableConfig = reactive<Config>(
+      Object.assign(baseConfig, props.config)
+    )
+
+    const currentSelectWrap = ref<HTMLDivElement | null>(null)
+    const data = reactive<DataType>({
+      ox: 0,
+      oy: 0,
+      startAngle: 0,
+      tableRotateAngle: 0,
       touched: false,
-    };
-    const { sqrt, acos, PI } = Math;
-    const tableConfig = Object.assign(baseConfig, props.config);
-    const currentSelectWrap = ref(null);
-    const data = reactive({
-      ox: 0, // 圆心x
-      oy: 0, // 圆心y
-      ow: 0,
-      oh: 0,
-    });
+      startThreshold: 0,
+      endthreshold: 0,
+    })
     // 关闭选择器
     const closeSelector = () => {
-      emit("update:modelValue", false);
-    };
-    const selectClass = computed(() => {
-      let { ox, oy, ow, oh } = data;
+      emit('update:modelValue', false)
+    }
+    // 转盘选择器的样式
+    const turntableClass = computed(() => {
+      let { ox, oy } = data
       return {
         width: `${tableConfig.diameter}px`,
         height: `${tableConfig.diameter}px`,
         top: `${oy - tableConfig.diameter / 2}px`,
         left: `${ox - tableConfig.diameter / 2}px`,
-      };
-    });
-    const touchStart = (e) => {
-      const touch = e.touches[0];
-      data.touched = true;
-      const hypotenuse = sqrt(
-        (touch.pageX - data.ox) ** 2 + (touch.pageY - data.oy) ** 2
-      ); //斜边
-      const angle = acos((touch.pageX - data.ox) / hypotenuse) / (PI / 180);
-      data.baseangle =
-        (touch.pageY - data.oy < 0 ? angle : 360 - angle) +
-        data.tableRotateangle;
-    };
-    const touchMove = (e) => {
-      if (!data.touched) return;
-      const touch = e.touches[0];
-      const hypotenuse = sqrt(
-        (touch.pageX - data.ox) ** 2 + (touch.pageY - data.oy) ** 2
-      );
-      const angle = (acos((touch.pageX - data.ox) / hypotenuse) * 180) / PI;
-      // console.log(angle);
-
-      const moveangle = touch.pageY - data.oy < 0 ? angle : 360 - angle;
-      console.log(moveangle);
-    };
+      }
+    })
+    // 删除超出范围的child
+    const delChild = props.children!.splice(
+      360 % tableConfig.itemAngle === 0
+        ? ceil(360 / tableConfig.itemAngle)
+        : floor(360 / tableConfig.itemAngle)
+    )
+    if (delChild.length > 0) {
+      console.error('chlid超出长度')
+    }
+    // 向上、下、左、右居中
+    if (typeof tableConfig.itemStartAngle == 'string') {
+      switch (tableConfig.itemStartAngle) {
+        case 'top':
+          tableConfig.itemStartAngle =
+            (-tableConfig.itemAngle * props.children!.length) / 2
+          break
+        case 'bottom':
+          tableConfig.itemStartAngle =
+            (-tableConfig.itemAngle * props.children!.length) / 2 + 180
+          break
+        case 'left':
+          tableConfig.itemStartAngle =
+            (-tableConfig.itemAngle * props.children!.length) / 2 - 90
+          break
+        case 'right':
+          tableConfig.itemStartAngle =
+            (-tableConfig.itemAngle * props.children!.length) / 2 + 90
+          break
+        default:
+          break
+      }
+    }
+    /**
+     * 调整角度
+     * @param {boolean} adjust 调整  若为true 则需要调整角度；若为false,则返回需要调整的角度值
+     */
+    const adjustangle = (adjust: boolean = true) => {
+      // 夹角为0  无需复位
+      const disanceangle = data.tableRotateAngle % tableConfig.itemAngle
+      let changeangle = 0
+      if (disanceangle === 0) return
+      // 夹角是否大于item角度（30度）的一半
+      const gtHalfPerangle = abs(disanceangle) > tableConfig.itemAngle / 2
+      if (disanceangle > 0) {
+        changeangle = gtHalfPerangle
+          ? tableConfig.itemAngle - disanceangle
+          : -disanceangle
+      } else {
+        changeangle = gtHalfPerangle
+          ? -tableConfig.itemAngle - disanceangle
+          : -disanceangle
+      }
+      if (!adjust) return changeangle
+      data.tableRotateAngle += changeangle
+    }
+    // 开始滑动
+    const touchStart = (e: TouchEvent) => {
+      const { pageX, pageY } = e.touches[0]
+      data.touched = true
+      const hypotenuse = sqrt((pageX - data.ox) ** 2 + (pageY - data.oy) ** 2) //斜边
+      const angle = acos((pageX - data.ox) / hypotenuse) / (PI / 180)
+      data.startAngle =
+        (pageY - data.oy < 0 ? angle : 360 - angle) + data.tableRotateAngle
+    }
+    // 滑动中
+    const touchMove = (e: TouchEvent) => {
+      if (!data.touched) return
+      const { pageX, pageY } = e.touches[0]
+      const hypotenuse = sqrt((pageX - data.ox) ** 2 + (pageY - data.oy) ** 2)
+      const angle = (acos((pageX - data.ox) / hypotenuse) * 180) / PI
+      const moveangle = pageY - data.oy < 0 ? angle : 360 - angle
+      data.tableRotateAngle = -(moveangle - data.startAngle) % 360
+      // 每经过一个item就触发一次事件  获取需要调整的角度
+      const res = adjustangle(false) as number
+      // 计算调整完的角度
+      const adjustedAngle = data.tableRotateAngle + res
+      console.log(adjustedAngle)
+      console.log(tableConfig.activeAngle)
+    }
+    // 结束滑动
     const touchEnd = () => {
-      data.touched = false;
-    };
+      data.touched = false
+      adjustangle()
+    }
     return {
       closeSelector,
       data,
       currentSelectWrap,
       tableConfig,
-      selectClass,
+      turntableClass,
       touchStart,
       touchMove,
       touchEnd,
-    };
+    }
   },
-});
+})
 </script>
 
 <style lang="less" scoped>
@@ -140,6 +258,26 @@ export default defineComponent({
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+  }
+}
+.child {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  p {
+    font-size: 14px;
+    color: rgb(51, 47, 47);
   }
 }
 </style>

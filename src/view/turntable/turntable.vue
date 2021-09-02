@@ -20,7 +20,7 @@ export default {
   components: {
     Turntable,
   },
-  setup() {
+  setup () {
     const data = reactive({
       list: [
         { content: "Time Flies", img: img1 },
