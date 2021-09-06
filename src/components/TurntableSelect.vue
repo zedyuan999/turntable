@@ -23,9 +23,7 @@
           :style="{
             transformOrigin: `center ${tableConfig.diameter / 2}px`,
             transform: `translateX(-50%) rotate(${
-              tableConfig.itemAngle * index +
-              tableConfig.activeAngle -
-              active * tableConfig.itemAngle
+              tableConfig.itemAngle * index + tableConfig.activeAngle
             }deg)`,
           }"
         >
@@ -57,8 +55,14 @@ interface DataType {
   startAngle: number // touchstart时记录的角度
   tableRotateAngle: number // 转盘转动的角度
   touched: boolean // 是否允许移动
-  startThreshold: number // 开始阈值
-  endthreshold: number // 结束阈值
+  activeStatus: number //是否超出范围 参考枚举activeStatus
+  dividingActive: number // 分界线的active值
+}
+
+enum activeStatus {
+  'clockwise' = 1, //顺时针超出范围
+  'counterclockwise' = -1, //逆时针超出范围
+  'in_scope' = 1, //在范围内
 }
 
 export default defineComponent({
@@ -124,9 +128,11 @@ export default defineComponent({
       startAngle: 0,
       tableRotateAngle: 0,
       touched: false,
-      startThreshold: 0,
-      endthreshold: 0,
+      activeStatus: 0,
+      dividingActive: 0,
     })
+    const restAngle = 360 - tableConfig.itemAngle * (props.children!.length - 1)
+    data.dividingActive = (360 - restAngle / 2) / tableConfig.itemAngle
     // 关闭选择器
     const closeSelector = () => {
       emit('update:modelValue', false)
@@ -171,7 +177,29 @@ export default defineComponent({
           : -disanceangle
       }
       if (!adjust) return changeangle
-      data.tableRotateAngle += changeangle
+      if (data.activeStatus > 0) {
+        // 顺时针超出范围
+        const baseAngle =
+          data.tableRotateAngle - tableConfig.activeAngle + changeangle < 0
+            ? data.tableRotateAngle - tableConfig.activeAngle + changeangle
+            : data.tableRotateAngle -
+              tableConfig.activeAngle +
+              changeangle -
+              360
+        data.tableRotateAngle -= 360 + baseAngle
+      } else if (data.activeStatus < 0) {
+        // 逆时针超出范围
+        data.tableRotateAngle +=
+          (-(data.tableRotateAngle - tableConfig.activeAngle + changeangle) /
+            tableConfig.itemAngle -
+            props.children!.length +
+            1) *
+          tableConfig.itemAngle
+      }
+      data.tableRotateAngle =
+        abs(data.tableRotateAngle + changeangle) === 360
+          ? 0
+          : data.tableRotateAngle + changeangle
     }
     // 开始滑动
     const touchStart = (e: TouchEvent) => {
@@ -189,24 +217,39 @@ export default defineComponent({
       const hypotenuse = sqrt((pageX - data.ox) ** 2 + (pageY - data.oy) ** 2)
       const angle = (acos((pageX - data.ox) / hypotenuse) * 180) / PI
       const moveangle = pageY - data.oy < 0 ? angle : 360 - angle
-      data.tableRotateAngle = -(moveangle - data.startAngle) % 360
-      // 每经过一个item就触发一次事件  获取需要调整的角度
-      const res = adjustangle(false) as number
-      // 计算调整完的角度
-      const adjustedAngle = data.tableRotateAngle + res
+      // console.log(moveangle)
+      const tableRotateAngle = -(moveangle - data.startAngle) % 360
+      data.tableRotateAngle =
+        tableRotateAngle > 0 ? tableRotateAngle - 360 : tableRotateAngle
+      // // 每经过一个item就触发一次事件  获取需要调整的角度
+      // const res = adjustangle(false) as number
+      // // 计算调整完的角度
+      // const adjustedAngle = data.tableRotateAngle + res
+      // console.log(data.tableRotateAngle)
+      const active: number =
+        -(data.tableRotateAngle - tableConfig.activeAngle) /
+        tableConfig.itemAngle
 
-      // 控制阈值
+      if (active < 0 || active > data.dividingActive) {
+        data.activeStatus = activeStatus.clockwise
+      } else if (
+        active > props.children!.length - 1 &&
+        active <= data.dividingActive
+      ) {
+        data.activeStatus = activeStatus.counterclockwise
+      } else {
+        data.activeStatus = 0
+      }
     }
     // 结束滑动
     const touchEnd = () => {
       data.touched = false
       adjustangle()
       const active =
-        props.active -
-        (data.tableRotateAngle - tableConfig.activeAngle) /
-          tableConfig.itemAngle
-      console.log(active)
-      // emit('update:active', active)
+        -(data.tableRotateAngle - tableConfig.activeAngle) /
+        tableConfig.itemAngle
+
+      emit('update:active', active)
     }
     return {
       closeSelector,

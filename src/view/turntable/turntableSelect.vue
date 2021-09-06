@@ -14,7 +14,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, reactive, ref } from 'vue'
 import TurntableSelect from '@/components/TurntableSelect.vue'
 import img1 from '@/assets/images/1.jpg'
 import img2 from '@/assets/images/2.jpg'
@@ -27,15 +27,16 @@ export default defineComponent({
   },
   setup() {
     const dom = ref<HTMLDivElement | null>(null)
-    const active = ref(1)
+    const active = ref(0)
     let showturnTable = ref(false)
     const toggleTurntable = () => {
       showturnTable.value = !showturnTable.value
     }
-    const children = ref<any[]>([
+    const children = reactive<any[]>([
       { content: 'Time Flies', img: img1 },
       { content: 'H³M', img: img2 },
       { content: 'Time Flies', img: img1 },
+      { content: 'H³M', img: img2 },
     ])
     return {
       showturnTable,
